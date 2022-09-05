@@ -57,22 +57,12 @@ mod build_proto {
             ]
         }
 
-        fn mod_rs_file(&self) -> &str {
-            match self {
-                Model::FnExecution => "src/fn_execution.rs",
-                Model::Interactive => "src/interactive.rs",
-                Model::JobManagement => "src/job_management.rs",
-                Model::Pipeline => "src/pipeline.rs",
-            }
+        const fn codegen_mod_file() -> &'static str {
+            "src/v1.rs"
         }
 
-        fn codegen_out_dir(&self) -> &str {
-            match self {
-                Model::FnExecution => "src/fn_execution/",
-                Model::Interactive => "src/interactive/",
-                Model::JobManagement => "src/job_management/",
-                Model::Pipeline => "src/pipeline/",
-            }
+        const fn codegen_out_dir() -> &'static str {
+            "src/v1/"
         }
 
         fn codegen_includes(&self) -> &[&str] {
@@ -145,6 +135,17 @@ mod build_proto {
             .collect()
     }
 
+    /// This build script currently asserts all beam models are v1.
+    fn assert_v1(input_proto_mods: &[ProtoMod]) {
+        for p in input_proto_mods {
+            assert!(
+                p.model_version == ModelVersion(1),
+                "This build script currently asserts all beam models are v1 but found: {:?}",
+                p.proto_path
+            )
+        }
+    }
+
     fn codegen(input_proto_mods: &[ProtoMod], model: &Model) {
         let inputs = input_proto_mods
             .iter()
@@ -152,7 +153,7 @@ mod build_proto {
             .map(|p| p.proto_path.as_path());
 
         Codegen::new()
-            .out_dir(model.codegen_out_dir())
+            .out_dir(Model::codegen_out_dir())
             .includes(model.codegen_includes())
             .inputs(inputs)
             .customize(Customize {
@@ -170,26 +171,28 @@ mod build_proto {
         eprintln!(
             "Successfully converted protobufs ({:?} model) into {}",
             model,
-            model.codegen_out_dir()
+            Model::codegen_out_dir()
         )
     }
 
-    fn write_mod_rs(input_proto_mods: &[ProtoMod], model: &Model) {
-        let mod_names = input_proto_mods
+    fn write_version_rs(input_proto_mods: &[ProtoMod]) {
+        let mut mod_names = input_proto_mods
             .iter()
-            .filter(|p| &p.model == model)
-            .map(|p| &p.mod_name);
+            .map(|p| &p.mod_name)
+            .collect::<Vec<_>>();
+        mod_names.sort();
 
         fs::write(
-            model.mod_rs_file(),
+            Model::codegen_mod_file(),
             mod_names
+                .iter()
                 .map(|mod_name| format!("pub mod {};", mod_name.to_string()))
                 .collect::<Vec<_>>()
                 .join("\n"),
         )
         .unwrap();
 
-        eprintln!("Wrote {}", model.mod_rs_file())
+        eprintln!("Wrote {}", Model::codegen_mod_file())
     }
 
     pub fn main() {
@@ -201,10 +204,13 @@ mod build_proto {
             .map(ProtoMod::from)
             .collect::<Vec<_>>();
 
+        assert_v1(&input_proto_mods);
+
         for model in Model::all() {
             codegen(&input_proto_mods, &model);
-            write_mod_rs(&input_proto_mods, &model)
         }
+
+        write_version_rs(&input_proto_mods);
     }
 }
 
