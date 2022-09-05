@@ -57,22 +57,8 @@ mod build_proto {
             ]
         }
 
-        fn mod_rs_file(&self) -> &str {
-            match self {
-                Model::FnExecution => "src/fn_execution.rs",
-                Model::Interactive => "src/interactive.rs",
-                Model::JobManagement => "src/job_management.rs",
-                Model::Pipeline => "src/pipeline.rs",
-            }
-        }
-
-        fn codegen_out_dir(&self) -> &str {
-            match self {
-                Model::FnExecution => "src/fn_execution/",
-                Model::Interactive => "src/interactive/",
-                Model::JobManagement => "src/job_management/",
-                Model::Pipeline => "src/pipeline/",
-            }
+        const fn codegen_out_dir() -> &'static str {
+            "src/v1/"
         }
 
         fn codegen_includes(&self) -> &[&str] {
@@ -163,7 +149,7 @@ mod build_proto {
             .map(|p| p.proto_path.as_path());
 
         Codegen::new()
-            .out_dir(model.codegen_out_dir())
+            .out_dir(Model::codegen_out_dir())
             .includes(model.codegen_includes())
             .inputs(inputs)
             .customize(Customize {
@@ -181,26 +167,8 @@ mod build_proto {
         eprintln!(
             "Successfully converted protobufs ({:?} model) into {}",
             model,
-            model.codegen_out_dir()
+            Model::codegen_out_dir()
         )
-    }
-
-    fn write_mod_rs(input_proto_mods: &[ProtoMod], model: &Model) {
-        let mod_names = input_proto_mods
-            .iter()
-            .filter(|p| &p.model == model)
-            .map(|p| &p.mod_name);
-
-        fs::write(
-            model.mod_rs_file(),
-            mod_names
-                .map(|mod_name| format!("pub mod {};", mod_name.to_string()))
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
-        .unwrap();
-
-        eprintln!("Wrote {}", model.mod_rs_file())
     }
 
     pub fn main() {
@@ -216,7 +184,6 @@ mod build_proto {
 
         for model in Model::all() {
             codegen(&input_proto_mods, &model);
-            write_mod_rs(&input_proto_mods, &model)
         }
     }
 }
