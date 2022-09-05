@@ -39,7 +39,8 @@ git commit -am 'build: bump up beam to v<NEW VERSION>'
 
 1. Change version in `Cargo.toml`.
 2. Update Beam.
-3. In the `main` branch: `cargo publish`.
+3. Shrink submodule size to avoid 413 error from crates.io: `cd beam; git sparse-checkout set model; cd ..`
+4. In the `main` branch: `cargo publish`.
 
 ## License
 
