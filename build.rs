@@ -1,7 +1,7 @@
 #[cfg(feature = "build-proto")]
 mod build_proto {
     use glob::glob;
-    use protoc_rust::{Codegen, Customize};
+    use protobuf_codegen::Codegen;
     use std::{ffi::OsStr, fs, path::Path, path::PathBuf};
 
     #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
@@ -156,10 +156,6 @@ mod build_proto {
             .out_dir(Model::codegen_out_dir())
             .includes(model.codegen_includes())
             .inputs(inputs)
-            .customize(Customize {
-                expose_fields: Some(true),
-                ..Default::default()
-            })
             .run()
             .unwrap_or_else(|_| {
                 panic!(
