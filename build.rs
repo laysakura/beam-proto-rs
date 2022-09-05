@@ -57,6 +57,10 @@ mod build_proto {
             ]
         }
 
+        const fn codegen_mod_file() -> &'static str {
+            "src/v1.rs"
+        }
+
         const fn codegen_out_dir() -> &'static str {
             "src/v1/"
         }
@@ -171,6 +175,26 @@ mod build_proto {
         )
     }
 
+    fn write_version_rs(input_proto_mods: &[ProtoMod]) {
+        let mut mod_names = input_proto_mods
+            .iter()
+            .map(|p| &p.mod_name)
+            .collect::<Vec<_>>();
+        mod_names.sort();
+
+        fs::write(
+            Model::codegen_mod_file(),
+            mod_names
+                .iter()
+                .map(|mod_name| format!("pub mod {};", mod_name.to_string()))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
+        .unwrap();
+
+        eprintln!("Wrote {}", Model::codegen_mod_file())
+    }
+
     pub fn main() {
         let in_dir = "./beam/model";
 
@@ -185,6 +209,8 @@ mod build_proto {
         for model in Model::all() {
             codegen(&input_proto_mods, &model);
         }
+
+        write_version_rs(&input_proto_mods);
     }
 }
 
