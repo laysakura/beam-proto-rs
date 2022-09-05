@@ -145,6 +145,17 @@ mod build_proto {
             .collect()
     }
 
+    /// This build script currently asserts all beam models are v1.
+    fn assert_v1(input_proto_mods: &[ProtoMod]) {
+        for p in input_proto_mods {
+            assert!(
+                p.model_version == ModelVersion(1),
+                "This build script currently asserts all beam models are v1 but found: {:?}",
+                p.proto_path
+            )
+        }
+    }
+
     fn codegen(input_proto_mods: &[ProtoMod], model: &Model) {
         let inputs = input_proto_mods
             .iter()
@@ -200,6 +211,8 @@ mod build_proto {
             .into_iter()
             .map(ProtoMod::from)
             .collect::<Vec<_>>();
+
+        assert_v1(&input_proto_mods);
 
         for model in Model::all() {
             codegen(&input_proto_mods, &model);
