@@ -2,7 +2,7 @@
 mod build_proto {
     use glob::glob;
     use protoc_rust::{Codegen, Customize};
-    use std::{ffi::OsStr, path::Path, path::PathBuf};
+    use std::{ffi::OsStr, fs, path::Path, path::PathBuf};
 
     #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     enum Model {
@@ -17,6 +17,11 @@ mod build_proto {
 
     #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
     struct ModName(String);
+    impl ToString for ModName {
+        fn to_string(&self) -> String {
+            self.0.to_string()
+        }
+    }
 
     #[derive(Clone, Eq, PartialEq, Hash, Debug)]
     struct ProtoMod {
@@ -43,6 +48,24 @@ mod build_proto {
     }
 
     impl Model {
+        fn all() -> Vec<Self> {
+            vec![
+                Self::FnExecution,
+                Self::Interactive,
+                Self::JobManagement,
+                Self::Pipeline,
+            ]
+        }
+
+        fn mod_rs_file(&self) -> &str {
+            match self {
+                Model::FnExecution => "src/fn_execution.rs",
+                Model::Interactive => "src/interactive.rs",
+                Model::JobManagement => "src/job_management.rs",
+                Model::Pipeline => "src/pipeline.rs",
+            }
+        }
+
         fn codegen_out_dir(&self) -> &str {
             match self {
                 Model::FnExecution => "src/fn_execution/",
@@ -151,6 +174,24 @@ mod build_proto {
         )
     }
 
+    fn write_mod_rs(input_proto_mods: &[ProtoMod], model: &Model) {
+        let mod_names = input_proto_mods
+            .iter()
+            .filter(|p| &p.model == model)
+            .map(|p| &p.mod_name);
+
+        fs::write(
+            model.mod_rs_file(),
+            mod_names
+                .map(|mod_name| format!("pub mod {};", mod_name.to_string()))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
+        .unwrap();
+
+        eprintln!("Wrote {}", model.mod_rs_file())
+    }
+
     pub fn main() {
         let in_dir = "./beam/model";
 
@@ -160,10 +201,10 @@ mod build_proto {
             .map(ProtoMod::from)
             .collect::<Vec<_>>();
 
-        codegen(&input_proto_mods, &Model::FnExecution);
-        codegen(&input_proto_mods, &Model::Interactive);
-        codegen(&input_proto_mods, &Model::JobManagement);
-        codegen(&input_proto_mods, &Model::Pipeline);
+        for model in Model::all() {
+            codegen(&input_proto_mods, &model);
+            write_mod_rs(&input_proto_mods, &model)
+        }
     }
 }
 
