@@ -15,4 +15,11 @@ repository = "https://github.com/laysakura/beam-proto-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+build-proto = ["dep:glob", "dep:protoc-rust"]
+
+[build-dependencies]
+glob = { version = "0.3", optional = true }
+protoc-rust = { version = "2.27", optional = true }
+
 [dependencies]
